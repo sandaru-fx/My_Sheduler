@@ -199,6 +199,7 @@ const LightScene = () => {
       <color attach="background" args={['#e2e8f0']} />
       <fog attach="fog" args={['#e2e8f0', 5, 30]} />
       <ambientLight intensity={1} />
+      {/* @ts-ignore - Cloud props typing from drei may be narrower */}
       <Cloud opacity={0.5} speed={0.4} width={10} depth={1.5} segments={20} position={[0, 0, -10]} color="#ffffff" />
       <FloatingShape position={[-4, 2, -5]} color="#64748b" speed={0.2} />
       <FloatingShape position={[4, -2, -5]} color="#94a3b8" speed={0.3} />

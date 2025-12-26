@@ -2,6 +2,8 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { ViewMode, UserProfile } from './types';
 import { getUserProfile } from './services/db';
 import { LayoutDashboard, StickyNote, Menu, LogOut, User, Sparkles, Mic } from 'lucide-react';
+import { AuthProvider, useAuth } from './components/AuthContext';
+import ServerStatus from './components/ServerStatus';
 
 // Lazy load components
 const ThreeBackground = lazy(() => import('./components/ThreeBackground'));
@@ -11,10 +13,20 @@ const Settings = lazy(() => import('./components/Settings'));
 const LoginPage = lazy(() => import('./components/LoginPage'));
 const LandingPage = lazy(() => import('./components/LandingPage'));
 const CommandCenter = lazy(() => import('./components/CommandCenter'));
+const SignIn = lazy(() => import('./components/SignIn'));
+const SignUp = lazy(() => import('./components/SignUp'));
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
+  const { isAuthenticated, signIn, signUp, signOut, updateProfile, user, token } = useAuth();
   // Navigation State
-  const [currentView, setCurrentView] = useState<'landing' | 'login' | 'app'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'login' | 'app' | 'signin' | 'signup'>('landing');
+  
+  // If user is authenticated, show app view
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      setCurrentView('app');
+    }
+  }, [isAuthenticated, user]);
 
   const [view, setView] = useState<ViewMode>('scheduler');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -29,9 +41,40 @@ const App: React.FC = () => {
   useEffect(() => {
     // Load profile on start
     const load = async () => {
-      const data = await getUserProfile();
-      setProfile(data);
-      setLoadingProfile(false);
+      try {
+        // If user is authenticated, use their profile from AuthContext
+        if (isAuthenticated && user) {
+          const userProfile: UserProfile = {
+            name: user.name,
+            email: user.email,
+            role: user.role || 'TimeFlow User',
+            bio: user.bio || 'Productivity enthusiast using TimeFlow Scheduler',
+            theme: (user.theme as any) || 'neon',
+            avatar: user.profilePicture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&h=200&auto=format&fit=crop',
+            joinedDate: user.createdAt || new Date().toISOString(),
+          };
+          setProfile(userProfile);
+          setLoadingProfile(false);
+        } else {
+          // Otherwise load default profile
+          const data = await getUserProfile();
+          setProfile(data);
+          setLoadingProfile(false);
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        // Fallback profile
+        setProfile({
+          name: 'Guest User',
+          email: 'guest@example.com',
+          role: 'TimeFlow Guest',
+          bio: 'Exploring TimeFlow Scheduler',
+          theme: 'neon',
+          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&h=200&auto=format&fit=crop',
+          joinedDate: new Date().toISOString(),
+        });
+        setLoadingProfile(false);
+      }
     };
     load();
 
@@ -44,11 +87,29 @@ const App: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isAuthenticated, user]);
 
-  const handleUpdateProfile = (newProfile: UserProfile) => {
-    setProfile(newProfile);
-    setPreviewTheme(null);
+  const handleUpdateProfile = async (newProfile: UserProfile) => {
+    try {
+      // Optimistically update local state
+      setProfile(newProfile);
+      setPreviewTheme(null);
+      
+      // If authenticated, update on backend
+      if (isAuthenticated) {
+        await updateProfile({
+          name: newProfile.name,
+          email: newProfile.email,
+          profilePicture: newProfile.avatar,
+          role: newProfile.role,
+          bio: newProfile.bio,
+          theme: newProfile.theme
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      // Optionally revert state here if needed
+    }
   };
 
   const handleTaskAddedViaAI = () => {
@@ -60,8 +121,27 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
+    signOut();
     setCurrentView('landing');
     setView('scheduler'); // Reset internal view
+  };
+  
+  const handleSignIn = async (email: string, password: string) => {
+    try {
+      await signIn(email, password);
+      setCurrentView('app');
+    } catch (error) {
+      throw error;
+    }
+  };
+  
+  const handleSignUp = async (name: string, email: string, password: string) => {
+    try {
+      await signUp(name, email, password);
+      setCurrentView('app');
+    } catch (error) {
+      throw error;
+    }
   };
 
   const NavItem = ({ mode, icon: Icon, label }: { mode: ViewMode; icon: any; label: string }) => (
@@ -99,6 +179,11 @@ const App: React.FC = () => {
 
   return (
     <div className={`relative w-full h-screen ${profile.theme === 'light' ? 'text-slate-900' : 'text-white'} overflow-hidden flex font-sans`}>
+      {/* Server Status Indicator */}
+      <div className="fixed top-4 right-4 z-50">
+        <ServerStatus />
+      </div>
+
       {/* 3D Background with Dynamic Theme */}
       <Suspense fallback={<div className="absolute inset-0 bg-slate-900"></div>}>
         <ThreeBackground theme={previewTheme || profile.theme} />
@@ -108,7 +193,11 @@ const App: React.FC = () => {
       {currentView === 'landing' && (
         <div className="absolute inset-0 z-50 bg-transparent animate-in fade-in duration-1000">
           <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div></div>}>
-            <LandingPage onGetStarted={() => setCurrentView('login')} />
+            <LandingPage 
+              onGetStarted={() => setCurrentView('login')} 
+              onSignIn={() => setCurrentView('signin')} 
+              onSignUp={() => setCurrentView('signup')} 
+            />
           </Suspense>
         </div>
       )}
@@ -119,6 +208,26 @@ const App: React.FC = () => {
           <LoginPage
             onLogin={handleLoginSuccess}
             onBack={() => setCurrentView('landing')}
+          />
+        </Suspense>
+      )}
+      
+      {/* --- Sign In View --- */}
+      {currentView === 'signin' && (
+        <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+          <SignIn
+            onSignIn={handleSignIn}
+            onNavigateToSignUp={() => setCurrentView('signup')}
+          />
+        </Suspense>
+      )}
+      
+      {/* --- Sign Up View --- */}
+      {currentView === 'signup' && (
+        <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+          <SignUp
+            onSignUp={handleSignUp}
+            onNavigateToSignIn={() => setCurrentView('signin')}
           />
         </Suspense>
       )}
@@ -258,6 +367,14 @@ const App: React.FC = () => {
         </>
       )}
     </div>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 };
 

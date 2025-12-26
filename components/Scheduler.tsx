@@ -131,30 +131,52 @@ const Scheduler: React.FC<{ lastUpdated?: number }> = ({ lastUpdated }) => {
     return isValid;
   };
 
+  const loadItems = async () => {
+    setLoading(true);
+    try {
+      const data = await getSchedule();
+      setItems(data);
+    } catch (error) {
+      console.error('Error loading schedule items:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
 
-    await addScheduleItem({
-      startTime,
-      endTime,
-      title,
-      description,
-      color: selectedColor,
-      date: new Date().toISOString(),
-    });
+    try {
+      await addScheduleItem({
+        startTime,
+        endTime,
+        title,
+        description,
+        color: selectedColor,
+        date: new Date().toISOString(),
+      });
 
-    setTitle('');
-    setDescription('');
-    setStartTime('');
-    setEndTime('');
-    setErrors({});
-    loadItems();
+      setTitle('');
+      setDescription('');
+      setStartTime('');
+      setEndTime('');
+      setErrors({});
+      
+      // Reload items after adding
+      loadItems();
+    } catch (error) {
+      console.error('Error adding schedule item:', error);
+    }
   };
 
   const handleDelete = async (id: string) => {
-    await deleteScheduleItem(id);
-    loadItems();
+    try {
+      await deleteScheduleItem(id);
+      loadItems();
+    } catch (error) {
+      console.error('Error deleting schedule item:', error);
+    }
   };
 
   const getDuration = (start: string, end: string) => {
