@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => {
         react(),
         splitVendorChunkPlugin(),
         compression({
-          algorithm: 'gzip',
+          algorithms: ['gzip'],
           exclude: [/\.(br)$/, /\.(gz)$/],
         }),
       ],

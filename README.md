@@ -1,51 +1,114 @@
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+<img width="1200" height="475" alt="TimeFlow Banner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+
+# TimeFlow Scheduler
+
+**Modern Task Management with AI Voice Commands**
+
 </div>
 
-# TimeFlow Scheduler with Voice Commands
+## Overview
 
-A modern scheduling application with AI-powered voice command capabilities.
+TimeFlow Scheduler is a professional-grade task management application with a modern UI and AI-powered features. The application combines beautiful 3D backgrounds with practical scheduling tools and innovative voice command capabilities.
 
-## Features
+## Key Features
 
-- **Voice Command Scheduling**: Add tasks to your schedule using natural language voice commands
-- **AI-Powered Task Extraction**: Uses DeepSeek-V3 model to intelligently parse your voice commands
-- **Intuitive UI**: Modern interface with theme customization
-- **Fallback Parsing**: Built-in heuristic parser as backup if AI parsing fails
+- **AI Voice Command Integration**: Schedule tasks using natural language voice commands
+- **Interactive 3D Backgrounds**: Multiple theme options with dynamic animations
+- **Responsive Design**: Optimized for both desktop and mobile devices
+- **Offline Capability**: Local storage fallback ensures your tasks are saved even without internet
+- **Theme Customization**: Choose from multiple visual themes to personalize your experience
+- **User Profiles**: Customizable user information and preferences
 
-## Voice Command Examples
+## Example Use Cases
 
-- "Schedule a team meeting tomorrow at 2 PM"
-- "Add doctor appointment on Friday at 10:30 AM"
-- "Create a lunch with client at noon on Tuesday"
+### Daily Planning
+1. Open TimeFlow Scheduler in the morning
+2. View your daily timeline at a glance
+3. Press Ctrl+K to open the AI Command Center
+4. Say "Schedule team standup at 9:30 AM"
+5. Add more tasks using voice or manual entry
 
-## Run Locally
+### Meeting Management
+1. When a colleague requests a meeting, open TimeFlow
+2. Click the microphone button and say "Meeting with marketing team tomorrow at 2 PM"
+3. The AI automatically adds it to your schedule
+4. View your complete timeline to check for conflicts
 
-**Prerequisites:** Node.js
+## Installation
 
-1. Install dependencies:
+### Prerequisites
+- Node.js (v16 or higher)
+- MongoDB database (local or Atlas)
+- Modern web browser (Chrome/Edge recommended for voice features)
+
+### Setup Instructions
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/timeflow-scheduler.git
+   cd timeflow-scheduler
    ```
+
+2. Install dependencies:
+   ```bash
    npm install
    ```
 
-2. Set up environment variables in `.env`:
-   - `MONGODB_URI`: Your MongoDB connection string
-   - `PORT`: Server port (default: 5000)
-   - `DEEPSEEK_API_KEY`: Your DeepSeek API key for AI task extraction
-
-3. Run the app:
+3. Configure environment variables in `.env`:
    ```
-   npm run dev
+   MONGODB_URI=your_mongodb_connection_string
+   PORT=5000
+   DEEPSEEK_API_KEY=your_deepseek_api_key  # Optional for advanced AI features
    ```
 
-## Using Voice Commands
+4. Start development server:
+   ```bash
+   npm run dev:full
+   ```
+
+5. For production build:
+   ```bash
+   npm run build
+   ```
+
+## Deployment Guide
+
+### Netlify Deployment
+
+1. Create a new site on Netlify
+2. Connect to your GitHub repository
+3. Configure build settings:
+   - Build command: `npm run build`
+   - Publish directory: `dist`
+4. Set up environment variables in Netlify dashboard
+5. Deploy!
+
+### Server Deployment (MongoDB + Express)
+
+1. Set up MongoDB Atlas cluster
+2. Deploy Express backend to a service like Heroku or Render
+3. Update frontend API endpoints to point to your deployed backend
+
+## Voice Command Usage
 
 1. Open the Command Center by pressing `Ctrl+K` or clicking the floating AI button
-2. Click the microphone icon (it will pulse red when active)
-3. Speak your command clearly
-4. The system will process your speech, extract task details, and add it to your schedule
-5. You'll see confirmation feedback when the task is scheduled
+2. Click the microphone icon (turns red when active)
+3. Speak commands like:
+   - "Schedule meeting with client tomorrow at 3 PM"
+   - "Add doctor appointment on Friday at 10:30 AM"
+   - "Create lunch with team on Wednesday at noon"
+4. The system processes your speech and adds the task to your schedule
 
 ## Browser Compatibility
 
-Voice recognition works best in Chrome, Edge, and other Chromium-based browsers that support the Web Speech API.
+- **Full Support**: Chrome, Edge, Opera (all voice features)
+- **Partial Support**: Firefox, Safari (voice features may be limited)
+- **Mobile**: Works on modern mobile browsers with responsive design
+
+## Technologies Used
+
+- **Frontend**: React, TypeScript, Three.js, Web Speech API
+- **Backend**: Express, MongoDB, Mongoose
+- **Styling**: Tailwind CSS
+- **Build Tools**: Vite, ESLint, Prettier

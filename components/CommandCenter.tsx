@@ -27,8 +27,8 @@ const CommandCenter: React.FC<CommandCenterProps> = ({ isOpen, onClose, onTaskAd
     }
     
     // Initialize speech recognition if available
-    if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (typeof window !== 'undefined' && (((window as any).webkitSpeechRecognition) || ((window as any).SpeechRecognition))) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = false;
