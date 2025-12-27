@@ -3,7 +3,7 @@ import { ScheduleItem, COLORS } from '../types';
 import { getSchedule, addScheduleItem, deleteScheduleItem } from '../services/db';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
-import { Trash2, Plus, Calendar, Clock, Zap, Sparkles, LayoutDashboard } from 'lucide-react';
+import { Trash2, Plus, Calendar, Clock, Zap, Sparkles, LayoutDashboard, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Float, Sphere, MeshDistortMaterial } from '@react-three/drei';
 import * as THREE from 'three';
@@ -18,7 +18,7 @@ const LivingTimeline3D = ({ itemsCount }: { itemsCount: number }) => {
     meshRef.current.rotation.x = t * 0.2;
     meshRef.current.rotation.y = t * 0.3;
     // Scale slightly based on items count
-    const targetScale = 1 + (itemsCount * 0.05);
+    const targetScale = 1 + (Math.min(itemsCount, 10) * 0.05);
     meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
   });
 
@@ -41,6 +41,13 @@ const LivingTimeline3D = ({ itemsCount }: { itemsCount: number }) => {
 const Scheduler: React.FC<{ lastUpdated?: number }> = ({ lastUpdated }) => {
   const [items, setItems] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Date State - Default to local date YYYY-MM-DD
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().split('T')[0];
+  });
 
   // Form State
   const [startTime, setStartTime] = useState('');
@@ -65,7 +72,7 @@ const Scheduler: React.FC<{ lastUpdated?: number }> = ({ lastUpdated }) => {
           const localItems = JSON.parse(localItemsStr);
           if (localItems.length > 0) {
             console.log('Found local items to merge:', localItems.length);
-            // Merge local items with API items (avoiding duplicates by title+time)
+            // Merge local items with API items (avoiding duplicates by title+time+date)
             const mergedItems = [...data];
             
             localItems.forEach(localItem => {
@@ -154,7 +161,7 @@ const Scheduler: React.FC<{ lastUpdated?: number }> = ({ lastUpdated }) => {
         title,
         description,
         color: selectedColor,
-        date: new Date().toISOString(),
+        date: selectedDate, // Use the selected date
       });
 
       setTitle('');
@@ -194,6 +201,26 @@ const Scheduler: React.FC<{ lastUpdated?: number }> = ({ lastUpdated }) => {
     return `${mins}m`;
   };
 
+  // Helper to change date by days
+  const changeDate = (days: number) => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + days);
+    
+    // Format back to YYYY-MM-DD
+    const newDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000))
+      .toISOString()
+      .split('T')[0];
+      
+    setSelectedDate(newDate);
+  };
+
+  // Filter items for selected date
+  const filteredItems = items.filter(item => {
+    // Handle potentially different date formats (ISO string vs YYYY-MM-DD)
+    const itemDate = item.date ? (item.date.includes('T') ? item.date.split('T')[0] : item.date) : '';
+    return itemDate === selectedDate;
+  });
+
   return (
     <div className="flex flex-col lg:flex-row gap-8 h-full overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
 
@@ -207,7 +234,7 @@ const Scheduler: React.FC<{ lastUpdated?: number }> = ({ lastUpdated }) => {
               <ambientLight intensity={0.5} />
               <pointLight position={[10, 10, 10]} intensity={1.5} color="#ec4899" />
               <Suspense fallback={null}>
-                <LivingTimeline3D itemsCount={items.length} />
+                <LivingTimeline3D itemsCount={filteredItems.length} />
               </Suspense>
             </Canvas>
           </div>
@@ -222,9 +249,9 @@ const Scheduler: React.FC<{ lastUpdated?: number }> = ({ lastUpdated }) => {
             </div>
 
             <div>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Items Scheduled</p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Tasks for {new Date(selectedDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</p>
               <div className="flex items-baseline gap-2">
-                <span className="text-5xl font-black text-white">{items.length}</span>
+                <span className="text-5xl font-black text-white">{filteredItems.length}</span>
                 <span className="text-sm font-bold text-indigo-400">Total Tasks</span>
               </div>
             </div>
@@ -241,6 +268,23 @@ const Scheduler: React.FC<{ lastUpdated?: number }> = ({ lastUpdated }) => {
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            
+            {/* Date Picker */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Target Date</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Calendar size={18} className="text-indigo-400" />
+                </div>
+                <input 
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 text-white text-sm rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 block pl-10 p-3 transition-all outline-none group-hover:bg-white/10"
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label="Start Time"
@@ -320,16 +364,38 @@ const Scheduler: React.FC<{ lastUpdated?: number }> = ({ lastUpdated }) => {
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 blur-[100px] -z-10 rounded-full" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-pink-600/10 blur-[100px] -z-10 rounded-full" />
 
-        <div className="flex items-center justify-between mb-10">
-          <h2 className="text-3xl font-black flex items-center gap-4 text-white uppercase tracking-tighter">
-            <div className="p-3 bg-pink-500/20 rounded-2xl text-pink-400 border border-pink-500/20 shadow-lg shadow-pink-500/10">
-              <Calendar size={24} />
+        <div className="flex items-center justify-between mb-10 flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-3xl font-black flex items-center gap-4 text-white uppercase tracking-tighter">
+              <div className="p-3 bg-pink-500/20 rounded-2xl text-pink-400 border border-pink-500/20 shadow-lg shadow-pink-500/10">
+                <Calendar size={24} />
+              </div>
+              <span className="hidden md:inline">Timeline</span>
+            </h2>
+            
+            {/* Date Navigator */}
+            <div className="flex items-center bg-white/5 rounded-full p-1 border border-white/10">
+              <button 
+                onClick={() => changeDate(-1)}
+                className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <div className="px-4 font-bold text-white text-sm whitespace-nowrap">
+                {new Date(selectedDate).toLocaleDateString(undefined, { weekday: 'short', month: 'long', day: 'numeric' })}
+              </div>
+              <button 
+                onClick={() => changeDate(1)}
+                className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
+              >
+                <ChevronRight size={16} />
+              </button>
             </div>
-            Today's Timeline
-          </h2>
+          </div>
+
           <div className="flex items-center gap-2 text-xs font-bold text-gray-400 bg-white/5 px-4 py-2 rounded-full border border-white/5">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            Live Schedule
+            Live Sync
           </div>
         </div>
 
@@ -342,16 +408,22 @@ const Scheduler: React.FC<{ lastUpdated?: number }> = ({ lastUpdated }) => {
               <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4" />
               <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Synchronizing Schedule...</p>
             </div>
-          ) : items.length === 0 ? (
+          ) : filteredItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-40 text-center animate-in fade-in zoom-in duration-500">
               <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10 shadow-2xl">
                 <Clock size={40} className="text-gray-600" />
               </div>
-              <h3 className="text-2xl font-bold text-white mb-2">The canvas is empty.</h3>
+              <h3 className="text-2xl font-bold text-white mb-2">No plans for this day.</h3>
               <p className="text-gray-400 max-w-xs font-medium">Capture your vision and design your day. Time is waiting for you.</p>
+              <Button 
+                onClick={() => document.querySelector('input[name="title"]')?.focus()}
+                className="mt-6 bg-white/5 hover:bg-white/10 text-white border border-white/10"
+              >
+                Add First Task
+              </Button>
             </div>
           ) : (
-            items.map((item, idx) => (
+            filteredItems.map((item, idx) => (
               <div key={item._id} className="flex group/item animate-in slide-in-from-left duration-500" style={{ animationDelay: `${idx * 100}ms` }}>
                 {/* Time Column */}
                 <div className="w-[85px] flex flex-col items-end mr-8 pt-2">
@@ -381,7 +453,7 @@ const Scheduler: React.FC<{ lastUpdated?: number }> = ({ lastUpdated }) => {
                         )}
                         <div className="flex items-center gap-4 pt-2">
                           <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                            <Clock size={12} /> Live Tracking
+                            <Clock size={12} /> Scheduled
                           </div>
                           <div className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
                             <Zap size={12} /> High Priority
