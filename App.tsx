@@ -286,7 +286,7 @@ const AppContent: React.FC = () => {
                 className="flex items-center gap-4 w-full px-5 py-4 rounded-2xl text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition-all duration-300 font-black uppercase tracking-widest text-xs"
               >
                 <LogOut size={18} />
-                <span>Terminate Session</span>
+                <span>Log Out</span>
               </button>
 
               <div className={`p-6 rounded-3xl border ${profile.theme === 'light' ? 'bg-white/40 border-slate-200' : 'bg-white/5 border-white/5 shadow-inner'}`}>
